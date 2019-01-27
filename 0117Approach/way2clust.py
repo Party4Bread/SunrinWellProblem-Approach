@@ -57,3 +57,5 @@ def k_objfunc(x,k,func,maxiter=1e4,eps=0.1):
                 evpoints[i] = func(assocpoints)
         err=euclidean(oldevpoints,evpoints)
     return evpoints,label
+
+print(k_objfunc(np.array([[1.,1.],[1.,3.]]),1,geometric_median))
