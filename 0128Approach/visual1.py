@@ -1,8 +1,11 @@
 import numpy as np
 from scipy.spatial.distance import cdist, euclidean
+from scipy.spatial import ConvexHull
 import random
 import timeit
+from time import gmtime, strftime
 
+import matplotlib.pyplot as plt
 def ternary_search_X0(p,s,a,e):
     # s: point(x0,x1), idx: variable argument
     l = s[0]-e
@@ -67,25 +70,15 @@ def sum_distances(x,p):
     res = np.sum(distance, 0)
     return res
 
-def runtime(f):
-    def wrapper(*args, **kwargs):
-        import timeit
-        start = timeit.default_timer()
-        res=f(*args)
-        end = timeit.default_timer()
-        print(end - start)
-        return res
-    return wrapper
-
-@runtime
-def k_objfunc(x,k,func,maxiter=1e3):
+def k_objfunc(x,k,func,maxiter=1e5):
     curiter=0
     Tm = np.min(x,0)
     TM = np.max(x,0)
     evpoints=((TM-Tm)*np.random.sample((k,2)))+Tm #init func
     labels=np.argmin(cdist(x,evpoints),axis=1)
     #labels=[np.argmin(np.linalg.norm(evpoints-i,axis=0)) for i in x]
-    
+    pltdraw(evpoints,labels,x)
+    titi = strftime("%Y-%m-%d_%H_%M_%S", gmtime())
     #assign init labels
     while curiter<maxiter:
         curiter+=1
@@ -96,23 +89,50 @@ def k_objfunc(x,k,func,maxiter=1e3):
                 evpoints[i]=func(iassoc)
 
         newlabels=np.argmin(cdist(x,evpoints),axis=1)
+        pltdraw(evpoints,newlabels,x)
+        plt.savefig('{1}-{0}.png'.format(curiter,titi))
         if (labels==newlabels).all():
             break
         labels=np.copy(newlabels)
     return evpoints,labels
 
-
+def pltdraw(evp,lab,xp):
+    xevp=np.concatenate([xp,evp])
+    xy=np.split(xevp,2,1)
+    x=np.concatenate(xy[0])
+    y=np.concatenate(xy[1])
+    c=np.concatenate([lab/(evp.shape[0]+1),np.ones(evp.shape[0])])
+    plt.clf()
+    dist=0
+    for i in evp:
+        dist+=sum_distances(i,xp)
+    plt.title(str(dist))
+    plt.scatter(x,y,np.ones(len(xy))*50,c)
+    kt=[[] for i in range(evp.shape[0])]
+    for i in range(lab.shape[0]):
+        kt[lab[i]].append(xp[i])
+    kt=np.array(kt)
+    for i in kt:
+        if len(i)<3:
+            continue
+        i=np.array(i)
+        hull = ConvexHull(i)
+        for simplex in hull.simplices:
+            plt.plot(i[simplex,0], i[simplex,1], 'k-')
+      
 
 def main():
     from functools import partial
-    p=np.random.sample((10,2))*1000
-    print(p)
+    p=np.random.sample((400,2))*1000
+    plt.figure(figsize=(7,7))
+    #print(p)
     Tm = np.min(p,0)
     TM = np.max(p,0)
     e = max(TM[0] -Tm[0], TM[1]-Tm[1])
     cdobj=partial(cordinate_descent,a=1e-5,e=e)
-
-    print(k_objfunc(p,2,cdobj))
+    for i in range(4):
+        ev,l=k_objfunc(p,25,cdobj)
+        pltdraw(ev,l,np.array(p))
     
 if __name__=="__main__":
     main()
