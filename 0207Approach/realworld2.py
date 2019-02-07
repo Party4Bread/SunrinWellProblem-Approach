@@ -7,6 +7,7 @@ import random
 import timeit
 from time import gmtime, strftime
 
+import json
 import matplotlib.pyplot as plt
 
 titi = ""
@@ -131,22 +132,28 @@ import os
 def main():
     global titi
     from functools import partial
-    k=10
-    s=600
-    p = load_iris()
-    p = p.data.reshape(300,2)
-    #p=np.random.sample((s,2))*100
+    k=25
+    kh=None
+    p=[]
+    with open("ihdi.json",encoding='utf8') as kr:
+        kh=json.load(kr)
+    scope=400
+    for khkh in kh["DATA"]:
+        p.append([(float(khkh["lng"])-126)*scope,(float(khkh["lat"])-37)*scope])
+    print(len(p))
+    p=np.array(p)
+    s=len(p)
     plt.figure(figsize=(14,14))
     #print(p)
     Tm = np.min(p,0)
     TM = np.max(p,0)
     e = max(TM[0] -Tm[0], TM[1]-Tm[1])
     cdobj=partial(cordinate_descent,a=1e-5,e=e)
-    titi="0207pics\\"+strftime("%Y-%m-%d_%H_%M_%S", gmtime())+"k%ds%d"%(k,s)
-    os.mkdir(titi)
-
-    ev,l=k_objfunc(p,k,cdobj)
-    pltdraw(ev,l,np.array(p))
+    for i in range(5):
+        titi="0208pics\\"+strftime("%Y-%m-%d_%H_%M_%S", gmtime())+"k%ds%d"%(k,s)
+        os.mkdir(titi)
+        ev,l=k_objfunc(p,k,cdobj)
+        pltdraw(ev,l,np.array(p))
     
 if __name__=="__main__":
     main()

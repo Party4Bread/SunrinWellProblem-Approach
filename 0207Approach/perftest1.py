@@ -1,10 +1,9 @@
 import numpy as np
 from scipy.spatial.distance import cdist, euclidean
-from scipy.spatial import ConvexHull
 from sklearn.datasets import load_iris
+from functools import partial
 
-import random
-import timeit
+import random,os,timeit
 from time import gmtime, strftime
 
 import matplotlib.pyplot as plt
@@ -66,6 +65,7 @@ def cordinate_descent(p,a,e):
         if diff < a:
             break
     return X
+
 def sum_distances(x,p):
     # x: variable value, p: const points 
     # print(x)
@@ -82,7 +82,6 @@ def k_objfunc(x,k,func,maxiter=1e5):
     evpoints=np.random.permutation(x)[:k]
     labels=np.argmin(cdist(x,evpoints),axis=1)
     #labels=[np.argmin(np.linalg.norm(evpoints-i,axis=0)) for i in x]
-    pltdraw(evpoints,labels,x)
     #assign init labels
     while curiter<maxiter:
         curiter+=1
@@ -91,10 +90,7 @@ def k_objfunc(x,k,func,maxiter=1e5):
             iassoc=np.array([x[j] for j in range(x.shape[0]) if labels[j]==i])
             if len(iassoc)>0:
                 evpoints[i]=func(iassoc)
-
         newlabels=np.argmin(cdist(x,evpoints),axis=1)
-        pltdraw(evpoints,newlabels,x)
-        plt.savefig('{1}\\{0:05d}.png'.format(curiter,titi))
         if (labels==newlabels).all():
             break
         labels=np.copy(newlabels)
@@ -102,12 +98,6 @@ def k_objfunc(x,k,func,maxiter=1e5):
 
 def pltdraw(evp,lab,xp):
     xevp=np.concatenate([xp,evp])
-    xy=np.split(xevp,2,1)
-    x=np.concatenate(xy[0])
-    y=np.concatenate(xy[1])
-    c=np.concatenate([lab/(evp.shape[0]+1),np.ones(evp.shape[0])])
-    plt.clf()
-    plt.scatter(x,y,np.ones(len(xy))*50,c)
     kt=[[] for i in range(evp.shape[0])]
     for i in range(lab.shape[0]):
         kt[lab[i]].append(xp[i])
@@ -115,38 +105,38 @@ def pltdraw(evp,lab,xp):
     for i in range(evp.shape[0]):
         if kt[i]!=[]:
             dist+=sum_distances([evp[i]],kt[i])
-    #dist=np.sum(sum_distances(evp,xp))
-    plt.title(str(dist))
-    kt=np.array(kt)
-    for i in kt:
-        if len(i)<4:
-            continue
-        i=np.array(i)
-        hull = ConvexHull(i)
-        for simplex in hull.simplices:
-            plt.plot(i[simplex,0], i[simplex,1], 'k-')
+    return dist
 
-import os
 
+import timeit
+from statistics import mean,median
 def main():
-    global titi
-    from functools import partial
-    k=10
-    s=600
-    p = load_iris()
-    p = p.data.reshape(300,2)
-    #p=np.random.sample((s,2))*100
-    plt.figure(figsize=(14,14))
-    #print(p)
-    Tm = np.min(p,0)
-    TM = np.max(p,0)
-    e = max(TM[0] -Tm[0], TM[1]-Tm[1])
-    cdobj=partial(cordinate_descent,a=1e-5,e=e)
-    titi="0207pics\\"+strftime("%Y-%m-%d_%H_%M_%S", gmtime())+"k%ds%d"%(k,s)
-    os.mkdir(titi)
-
-    ev,l=k_objfunc(p,k,cdobj)
-    pltdraw(ev,l,np.array(p))
-    
+    tc=[
+        #(10,6000),
+        #(13,6000),
+        #(15,6000),
+        #(5,6000),
+        (5,900),
+        (6,1000),
+        (7,2000),
+        (8,2000),
+        (9,4000)
+    ]
+    for k,s in tc:    
+        p=np.random.sample((s,2))*500
+        Tm = np.min(p,0)
+        TM = np.max(p,0)
+        e = max(TM[0] -Tm[0], TM[1]-Tm[1])
+        cdobj=partial(cordinate_descent,a=1e-5,e=e)
+        timelist=[]
+        distlist=[]
+        for i in range(10):
+            start = timeit.default_timer()
+            ev,l=k_objfunc(p,k,cdobj)
+            end = timeit.default_timer()
+            timelist.append(end - start)
+            distlist.append(pltdraw(ev,l,p)[0])
+        print(k,s,min(timelist),mean(timelist),median(timelist),\
+            min(distlist),mean(distlist),median(distlist))
 if __name__=="__main__":
     main()
