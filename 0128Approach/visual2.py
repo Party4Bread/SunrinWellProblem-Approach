@@ -78,7 +78,8 @@ def k_objfunc(x,k,func,maxiter=1e5):
     curiter=0
     Tm = np.min(x,0)
     TM = np.max(x,0)
-    evpoints=((TM-Tm)*np.random.sample((k,2)))+Tm #init func
+    #evpoints=((TM-Tm)*np.random.sample((k,2)))+Tm #init func
+    evpoints=np.random.choice(x,k,False)
     labels=np.argmin(cdist(x,evpoints),axis=1)
     #labels=[np.argmin(np.linalg.norm(evpoints-i,axis=0)) for i in x]
     pltdraw(evpoints,labels,x)
@@ -112,7 +113,8 @@ def pltdraw(evp,lab,xp):
         kt[lab[i]].append(xp[i])
     dist=0
     for i in range(evp.shape[0]):
-        dist+=sum_distances([evp[i]],kt[i])
+        if kt[i]!=[]:
+            dist+=sum_distances([evp[i]],kt[i])
     #dist=np.sum(sum_distances(evp,xp))
     plt.title(str(dist))
     kt=np.array(kt)
@@ -129,10 +131,11 @@ import os
 def main():
     global titi
     from functools import partial
-    k=15
-    s=30000
-    #p = load_iris()
-    p=np.random.sample((s,2))*100
+    k=10
+    s=600
+    p = load_iris()
+    p = p.data.reshape(300,2)
+    #p=np.random.sample((s,2))*100
     plt.figure(figsize=(14,14))
     #print(p)
     Tm = np.min(p,0)
